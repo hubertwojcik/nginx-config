@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Laboratoria: Nginx + Docker | La Casa (the zqwodzie)</title>
+  <meta name="description" content="Stronka na laby z Nginx i Dockera – notatki, checklisty, mini-projekty." />
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --card:#111827;
+      --muted:#94a3b8;
+      --text:#e5e7eb;
+      --accent:#ef4444;
+      --accent2:#22c55e;
+      --border:rgba(255,255,255,.08);
+      --shadow: 0 12px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 700px at 20% -10%, rgba(239,68,68,.22), transparent 60%),
+                  radial-gradient(1000px 600px at 90% 10%, rgba(34,197,94,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      line-height:1.55;
+    }
+    a{color:inherit}
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding:32px 18px 80px;
+    }
+    header{
+      display:flex;
+      gap:18px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      padding:22px 18px;
+      border:1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:280px;
+    }
+    .title h1{
+      margin:0;
+      font-size: clamp(24px, 3.2vw, 40px);
+      letter-spacing:.2px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      color: var(--muted);
+      font-size:13px;
+      width:fit-content;
+      background: rgba(255,255,255,.03);
+    }
+    .pill{
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--border);
+      color: var(--text);
+      background: rgba(255,255,255,.04);
+    }
+    nav{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    nav a{
+      text-decoration:none;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      font-size:14px;
+      color: var(--muted);
+    }
+    nav a:hover{
+      transform: translateY(-1px);
+      border-color: rgba(239,68,68,.35);
+      background: rgba(239,68,68,.10);
+      color: var(--text);
+    }
+
+    .grid{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns: 1.3fr .9fr;
+      gap:18px;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns: 1fr}
+      nav{justify-content:flex-start}
+    }
+    .card{
+      border:1px solid var(--border);
+      background: rgba(17,24,39,.72);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    .card h2{
+      margin:0 0 8px 0;
+      font-size:18px;
+      letter-spacing:.2px;
+    }
+    .muted{color:var(--muted)}
+    .kpi{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:12px;
+      margin-top:14px;
+    }
+    @media (max-width: 560px){
+      .kpi{grid-template-columns:1fr}
+    }
+    .kpi .box{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background: rgba(255,255,255,.03);
+    }
+    .kpi .num{
+      font-family:var(--mono);
+      font-size:18px;
+      margin:0;
+    }
+    .kpi .label{
+      margin:4px 0 0;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .section{
+      margin-top:18px;
+    }
+    .section .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:18px;
+    }
+    @media (max-width: 900px){
+      .section .row{grid-template-columns:1fr}
+    }
+
+    ul{margin:10px 0 0 18px; padding:0}
+    li{margin:6px 0}
+    code, pre{
+      font-family: var(--mono);
+    }
+    pre{
+      margin:12px 0 0;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.30);
+      overflow:auto;
+      font-size:13px;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      font-size:12px;
+      color: var(--muted);
+      margin-right:8px;
+      margin-top:8px;
+    }
+    .dot{width:8px;height:8px;border-radius:50%}
+    .dot.red{background:var(--accent)}
+    .dot.green{background:var(--accent2)}
+    .footer{
+      margin-top:18px;
+      padding:16px;
+      text-align:center;
+      color: var(--muted);
+      font-size:13px;
+    }
+    .hr{
+      height:1px;
+      background: var(--border);
+      margin:14px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="title">
+        <div class="badge">
+          <span class="pill">LAB</span>
+          <span>NGINX + DOCKER</span>
+          <span class="pill">La Casa (the zqwodzie)</span>
+        </div>
+        <h1>Moje laboratoria: Nginx & Docker</h1>
+        <div class="muted">
+          Notatki, checklisty i mini-projekty. Cel: umiem postawić www, reverse proxy i kontenery jak należy.
+        </div>
+      </div>
+
+      <nav>
+        <a href="#nginx">Nginx</a>
+        <a href="#docker">Docker</a>
+        <a href="#deploy">Mini-Deploy</a>
+        <a href="#checklist">Checklist</a>
+      </nav>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Panel labów</h2>
+        <p class="muted">
+          Tu zapisuję co robiłem na zajęciach i w domu. Każdy lab: cel → kroki → wynik → co poprawić.
+        </p>
+
+        <div class="kpi">
+          <div class="box">
+            <p class="num">#01</p>
+            <p class="label">Reverse proxy</p>
+          </div>
+          <div class="box">
+            <p class="num">#02</p>
+            <p class="label">Static + cache</p>
+          </div>
+          <div class="box">
+            <p class="num">#03</p>
+            <p class="label">Docker compose</p>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <span class="tag"><span class="dot red"></span> priorytet: praktyka</span>
+        <span class="tag"><span class="dot green"></span> cel: działający deploy</span>
+
+        <pre># Szybki plan:
+1) kontener z nginx serwuje tę stronę
+2) nginx reverse proxy do app (np. hello server)
+3) compose: nginx + app + (opcjonalnie) postgres
+4) logi + healthcheck + podstawowy hardening</pre>
+      </section>
+
+      <aside class="card">
+        <h2>O projekcie</h2>
+        <p class="muted">
+          Motyw „La Casa” = operacja: <b>stabilny serwer</b>, zero chaosu w konfiguracji 😄
+        </p>
+        <ul>
+          <li>✅ prosta nawigacja</li>
+          <li>✅ miejsce na configi i komendy</li>
+          <li>✅ gotowe bloki do uzupełniania</li>
+        </ul>
+
+        <div class="hr"></div>
+
+        <h2>Jak używać</h2>
+        <ul>
+          <li>Uzupełnij sekcje labów (cel / kroki / wynik).</li>
+          <li>Wklej fragmenty configów do bloków <code>&lt;pre&gt;</code>.</li>
+          <li>Zapisz w repo jako dokumentację.</li>
+        </ul>
+      </aside>
+    </div>
+
+    <section id="nginx" class="section card">
+      <h2>Nginx — laboratoria</h2>
+      <p class="muted">Najczęstsze tematy: server blocks, reverse proxy, cache, gzip, headers, logi.</p>
+
+      <div class="row">
+        <div class="card" style="box-shadow:none; background:rgba(255,255,255,.02);">
+          <h2>Lab #01 — Static site</h2>
+          <ul>
+            <li><b>Cel:</b> wystawić statyczną stronę przez Nginx</li>
+            <li><b>Wynik:</b> <span class="muted">uzupełnij po labie</span></li>
+          </ul>
+          <pre># Przykład: minimalny server block
+server {
+  listen 80;
+  server_name localhost;
+
+  root /usr/share/nginx/html;
+  index index.html;
+
+  location / {
+    try_files $uri $uri/ =404;
+  }
+}</pre>
+        </div>
+
+        <div class="card" style="box-shadow:none; background:rgba(255,255,255,.02);">
+          <h2>Lab #02 — Reverse proxy</h2>
+          <ul>
+            <li><b>Cel:</b> proxy do aplikacji na porcie 3000</li>
+            <li><b>Wynik:</b> <span class="muted">uzupełnij po labie</span></li>
+          </ul>
+          <pre># Reverse proxy do app
+location /api/ {
+  proxy_pass http://app:3000/;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="docker" class="section card">
+      <h2>Docker — laboratoria</h2>
+      <p class="muted">Build, run, volumes, networks, healthcheck i compose.</p>
+
+      <div class="row">
+        <div class="card" style="box-shadow:none; background:rgba(255,255,255,.02);">
+          <h2>Lab #03 — Nginx w kontenerze</h2>
+          <pre># build + run (lokalnie)
+docker build -t lab-nginx .
+docker run --rm -p 8080:80 lab-nginx</pre>
+          <p class="muted">Uwaga: w Dockerfile kopiujesz <code>index.html</code> do <code>/usr/share/nginx/html</code>.</p>
+        </div>
+
+        <div class="card" style="box-shadow:none; background:rgba(255,255,255,.02);">
+          <h2>Lab #04 — Compose: nginx + app</h2>
+          <pre># docker-compose.yml (szkielet)
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  app:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "node -e \"require('http').createServer((req,res)=>res.end('hello')).listen(3000)\""
+    expose:
+      - "3000"</pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="deploy" class="section card">
+      <h2>Mini-Deploy</h2>
+      <p class="muted">
+        Cel końcowy: jeden folder z plikami → <code>docker compose up -d</code> → działa strona + proxy do app.
+      </p>
+      <ul>
+        <li>Dodaj podstawowe nagłówki bezpieczeństwa (np. <code>X-Frame-Options</code>, <code>X-Content-Type-Options</code>).</li>
+        <li>Włącz logi access/error i sprawdź je w kontenerze.</li>
+        <li>Dodaj prosty healthcheck do app.</li>
+      </ul>
+    </section>
+
+    <section id="checklist" class="section card">
+      <h2>Checklist</h2>
+      <ul>
+        <li>☐ Strona działa na <code>http://localhost:8080</code></li>
+        <li>☐ Nginx serwuje statyki + poprawny <code>try_files</code></li>
+        <li>☐ Reverse proxy działa dla <code>/api</code></li>
+        <li>☐ Kontenery w jednej sieci (compose domyślnie)</li>
+        <li>☐ Volumes tylko tam gdzie trzeba (read-only dla configów)</li>
+        <li>☐ Logi i podstawowy hardening</li>
+      </ul>
+    </section>
+
+    <div class="footer">
+      © <span id="year"></span> • Operacja: La Casa (the zqwodzie) • Nginx + Docker Labs
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
